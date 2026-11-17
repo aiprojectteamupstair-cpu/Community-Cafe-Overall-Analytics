@@ -28,3 +28,7 @@ Open the Vite URL, upload an `.xlsx` or `.csv` export, or choose **Load sample d
 Each chart offers a table view, CSV, and PNG. **Full report PPTX** downloads an editable PowerPoint report with the current global filters and name-masking setting. The deck covers overview, sales mix, items, daily activity, time, table occupancy, payments, customers, outlets, and data quality. Global filters are reflected in the URL.
 
 See [Metric definitions](METRICS.md) for the chart and KPI definitions.
+
+## Deploy to Vercel
+
+Import this directory as a Vercel project. The included `vercel.json` selects the Vite framework, runs `npm run build`, serves `dist`, and supports direct links to the app. If the project was already imported, set its Root Directory to this folder and redeploy after pushing these changes. No server functions or environment variables are needed; POS uploads and PowerPoint generation run in the browser.

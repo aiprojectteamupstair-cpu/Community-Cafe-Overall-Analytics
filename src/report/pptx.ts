@@ -25,7 +25,7 @@ function addTable(slide:PptxGenJS.Slide,rows:(string|number)[][],x:number,y:numb
   slide.addTable(rows.map(row=>row.map(value=>({text:String(value)}))),{x,y,w,border:{type:'solid',pt:.5,color:'DADADA'},fontFace:'Aptos',fontSize:options.fontSize??12,color:INK,margin:.07,rowH:.36,colW:options.colW,bold:false,fill:{color:'FFFFFF'},breakLine:false});
 }
 function chart(slide:PptxGenJS.Slide,type:'bar'|'line'|'doughnut',series:{name:string;labels:string[];values:number[]}[],x:number,y:number,w:number,h:number,extra:Record<string,unknown>={}){
-  slide.addChart(type,series,{x,y,w,h,chartColors:palette,showLegend:series.length>1||type==='doughnut',showTitle:false,showValue:type==='doughnut',showPercent:type==='doughnut',showMarker:type==='line',showBorder:false,showShadow:false,catAxisLabelFontSize:9,valAxisLabelFontSize:9,legendFontSize:10,legendPos:'b',valGridLine:{color:'E9E9E9'},...extra});
+  slide.addChart(type,series,{x,y,w,h,chartColors:palette,showLegend:series.length>1||type==='doughnut',showTitle:false,showValue:type==='doughnut',showPercent:type==='doughnut',catAxisLabelFontSize:9,valAxisLabelFontSize:9,legendFontSize:10,legendPos:'b',valGridLine:{color:'E9E9E9'},...extra});
 }
 function maskName(name:string,mask:boolean){return mask?name.split(' ').map((part,index)=>index?`${part[0]}.`:part).join(' '):name}
 function filterLabel(f:Filters){return `${f.from||'Start'} to ${f.to||'End'}  ·  Outlet: ${f.outlet}  ·  Segment: ${f.segment}  ·  Payment: ${f.payment}  ·  Service: ${f.service}`}
