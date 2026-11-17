@@ -1,0 +1,1 @@
+module.exports = { content: ['./index.html', './src/**/*.{ts,tsx}'], theme: { extend: { colors: { primary: 'var(--primary)', surface: 'var(--surface)', page: 'var(--page)', ink: 'var(--ink)', muted: 'var(--muted)' } } }, plugins: [] };

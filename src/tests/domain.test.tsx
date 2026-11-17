@@ -1,0 +1,25 @@
+import { describe, expect, it } from 'vitest';
+import fixtureText from '../../public/sample-anonymized.csv?raw';
+import { parseBuffer } from '../domain/parse';
+import { normalizeRows, parseItems } from '../domain/normalize';
+import { defaultRules } from '../domain/config';
+import { duration, emptyFilters, group, items, normal, sum } from '../domain/aggregate';
+import { quality } from '../domain/quality';
+import { useCafe } from '../store/useCafe';
+import { render, screen } from '@testing-library/react';
+import App from '../app/App';
+const fixture=new TextEncoder().encode(fixtureText);
+const raw=parseBuffer(fixture.buffer,'sample.csv');
+const rows=normalizeRows(raw,defaultRules);
+describe('September sample',()=>{
+ it('matches the golden invoice and sales totals',()=>{expect(rows).toHaveLength(665);expect(new Set(rows.map(r=>r.dateKey)).size).toBe(30);expect(sum(rows,'total')).toBe(36444565);expect(sum(normal(rows),'total')).toBe(24143025)});
+ it('classifies segments, payment and outlets',()=>{expect(group(rows,r=>r.segment).map(x=>[x.name,x.invoices])).toEqual(expect.arrayContaining([['STUDENT_SERVICE_ACC',29],['GUEST',142],['SFU_STUDENT',494]]));expect(group(normal(rows),r=>r.paymentGroup).map(x=>[x.name,x.invoices])).toEqual(expect.arrayContaining([['Cash',268],['Mobile Banking',193],['Wallet',171],['Unknown',4]]));expect(group(normal(rows),r=>r.outlet).map(x=>[x.name,x.invoices,x.sales])).toEqual(expect.arrayContaining([['EXPRESS',110,1385925],['CAFE',526,22757100]]))});
+ it('ranks normal-sale items and tracks quality',()=>{expect(items(rows).slice(0,3).map(x=>[x.name,x.qty])).toEqual([['Egg Pudding',133],['Chicken Sausage Sandwich',131],['Chicken Steak with Jus',100]]);expect(quality(rows,'sample.csv').find(x=>x.id==='reconciliation')?.rows).toHaveLength(0);expect(quality(rows,'sample.csv').find(x=>x.id==='missingPayment')?.rows).toHaveLength(4)});
+ it('surfaces the sample quality flags',()=>{const q=quality(rows,'sample.csv');expect(q.find(x=>x.id==='timeAnomaly')?.rows).toHaveLength(1);expect(q.find(x=>x.id==='testingCreator')?.rows).toHaveLength(1);expect(q.find(x=>x.id==='mixedCreators')?.rows).toHaveLength(56);expect(q.find(x=>x.id==='mixedType')?.rows).toHaveLength(9)});
+ it('handles aliases and time ranges',()=>{expect(parseItems('Americano (Ice) x1, Americano (Iced) x2',defaultRules.aliases).items.map(x=>x.name)).toEqual(['Americano (Iced)','Americano (Iced)']);expect(rows.filter(r=>r.time.includes(' - '))).toHaveLength(161);expect(duration(rows).rows.length).toBeGreaterThan(0)});
+ it('reports exact missing headers',()=>{const buffer=new TextEncoder().encode('Invoice No,Date\nA,01 Sep 2026').buffer;expect(()=>parseBuffer(buffer,'missing.csv')).toThrow(/Missing columns: Order #, Table, Customer/)});
+ it('handles mixed values, midnight and Burmese names',()=>{const r={...raw[0],Customer:'မောင်မောင်','Student Code':'2026D9999',Type:'Dine In / Takeaway','Created By':'The Community Cafe 1, The Community Cafe 2',Table:'Table 1',Time:'11:50 PM - 12:10 AM'};const x=normalizeRows([r],defaultRules)[0];expect(x.segment).toBe('SFU_STUDENT');expect(x.serviceType).toBe('Mixed');expect(x.cafeBranch).toBe('Mixed');expect(x.durationMinutes).toBe(20);expect(x.flags).toContain('midnightCrossing')});
+ it('can normalize another month without retaining September dates',()=>{const r={...raw[0],Date:'01 Oct 2026'};expect(normalizeRows([r],defaultRules)[0].dateKey).toBe('2026-10-01')});
+});
+describe('upload screen',()=>{it('shows the local upload and sample actions',()=>{render(<App/>);expect(screen.getByText('Choose a file')).toBeTruthy();expect(screen.getByText('Explore sample data')).toBeTruthy()})});
+describe('re-upload',()=>{it('replaces an old month and its date filter',()=>{const store=useCafe.getState();store.setData(rows,raw,'september.csv');store.setFilter('from','2026-09-15');const nextRaw=[{...raw[0],Date:'01 Oct 2026'}];store.setData(normalizeRows(nextRaw,defaultRules),nextRaw,'october.csv');expect(useCafe.getState().filters.from).toBe('2026-10-01');expect(useCafe.getState().rows).toHaveLength(1);useCafe.setState({rows:[],raw:[],filename:'',filters:emptyFilters})})});
